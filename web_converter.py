@@ -1,60 +1,112 @@
 # web_converter_file_clean.py
+
 import streamlit as st
 from datetime import date
 from hijridate import Hijri, Gregorian
 import pandas as pd
+import base64
 
+
+# -----------------------------
+# PAGE SETTINGS
+# -----------------------------
 st.set_page_config(page_title="Hijri ↔ Gregorian Converter", layout="centered")
-st.title("🕌 Hijri ↔ Gregorian Date Converter (Batch File)")
 
+
+# -----------------------------
+# BACKGROUND IMAGE FUNCTION
+# -----------------------------
+def add_bg_from_local(image_file):
+    """Load a local image and set it as the app background."""
+    with open(image_file, "rb") as img:
+        encoded = base64.b64encode(img.read()).decode()
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("data:image/jpg;base64,{encoded}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+
+        /* Optional: add transparent background to widgets for readability */
+        .block-container {{
+            background: rgba(255, 255, 255, 0.82);
+            padding: 2rem;
+            border-radius: 12px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# Apply background image
+add_bg_from_local("itt.jpg")
+
+
+# -----------------------------
+# UI TITLE
+# -----------------------------
+st.title("🕌 Hijri ↔ Gregorian Date Converter (Batch File)")
 st.write("""
 Upload a text file with dates (one per line) in **DD/MM/YYYY** format.
 The app will detect if each date is Hijri or Gregorian and convert it.
 """)
 
-uploaded_file = st.file_uploader("Choose a text file", type=["txt"])
 
-
+# -----------------------------
+# HELPER FUNCTIONS
+# -----------------------------
 def is_hijri_date(day, month, year):
-    """Rough check: Hijri years are usually < 1600"""
+    """Rough check: Hijri years are usually < 1600."""
     return year < 1600
 
 
 def convert_line(date_str):
-    """Convert one date line between Hijri and Gregorian (NO correction)."""
+    """Convert a date line between Hijri and Gregorian (NO correction)."""
     date_str = date_str.strip()
     if not date_str:
         return "", ""
     try:
         day, month, year = map(int, date_str.split('/'))
 
+        # Hijri → Gregorian
         if is_hijri_date(day, month, year):
-            # Hijri → Gregorian (NO +1 DAY FIX)
             g = Hijri(year, month, day).to_gregorian()
             g_date = date(g.year, g.month, g.day)
             return date_str, f"{g_date.day:02d}/{g_date.month:02d}/{g_date.year}"
+
+        # Gregorian → Hijri
         else:
-            # Gregorian → Hijri
             h = Gregorian(year, month, day).to_hijri()
             return date_str, f"{h.day:02d}/{h.month:02d}/{h.year}"
+
     except Exception:
         return date_str, "Invalid"
 
 
+# -----------------------------
+# FILE UPLOAD + PROCESSING
+# -----------------------------
+uploaded_file = st.file_uploader("Choose a text file", type=["txt"])
+
 if uploaded_file:
-    # Read lines from uploaded file
+    # Read lines
     lines = uploaded_file.read().decode("utf-8").splitlines()
 
     # Convert each line
     results = [convert_line(line) for line in lines if line.strip()]
 
-    # Create DataFrame for table display
+    # Display in table
     df = pd.DataFrame(results, columns=["Original Date", "Converted Date"])
 
     st.subheader("Conversion Results")
     st.table(df)
 
-    # Optional: allow download of results as text file
+    # Download output file
     output_text = "\n".join([f"{orig}\t{conv}" for orig, conv in results])
     st.download_button(
         label="Download Results",
