@@ -1,6 +1,6 @@
 # web_converter_file_clean.py
 import streamlit as st
-from datetime import timedelta, date
+from datetime import date
 from hijridate import Hijri, Gregorian
 import pandas as pd
 
@@ -21,7 +21,7 @@ def is_hijri_date(day, month, year):
 
 
 def convert_line(date_str):
-    """Convert one date line between Hijri and Gregorian with 1-day Hijri fix."""
+    """Convert one date line between Hijri and Gregorian (NO correction)."""
     date_str = date_str.strip()
     if not date_str:
         return "", ""
@@ -29,12 +29,12 @@ def convert_line(date_str):
         day, month, year = map(int, date_str.split('/'))
 
         if is_hijri_date(day, month, year):
-            # Hijri → Gregorian (+1 day correction)
+            # Hijri → Gregorian (NO +1 DAY FIX)
             g = Hijri(year, month, day).to_gregorian()
-            g_date = date(g.year, g.month, g.day) + timedelta(days=1)
+            g_date = date(g.year, g.month, g.day)
             return date_str, f"{g_date.day:02d}/{g_date.month:02d}/{g_date.year}"
         else:
-            # Gregorian → Hijri (no correction)
+            # Gregorian → Hijri
             h = Gregorian(year, month, day).to_hijri()
             return date_str, f"{h.day:02d}/{h.month:02d}/{h.year}"
     except Exception:
